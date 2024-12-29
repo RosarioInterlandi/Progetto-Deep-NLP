@@ -123,10 +123,12 @@ for style in style_list:
     # Output della dimensione del dataset
     print(f"{style.capitalize()} test: {len(datasets[style])}")
 # MODIFIED: Aggiunta assegnazione del dataloader A per il one to many e del dataloader B per many to one
+"""
 if style_a:
     mono_dl_a_test = dataloaders[style_a]
 if style_b:
     mono_dl_b_test = dataloaders[style_b]
+"""
 # Output della dimensione dei batch
 for style in style_list:
     print(f"{style.capitalize()} test (batches): {len(dataloaders[style])}")
@@ -230,11 +232,13 @@ for checkpoint, epoch in zip(checkpoints_paths, epochs):
         styles_to_evaluate = [style for style in style_list if style != style_b]
         for style in styles_to_evaluate:
             mono_dl_other_test = dataloaders[style]
+            # evaluator.run_eval_mono(epoch, epoch, 'test', dataloaders[style_a], mono_dl_other_test)
             total_metrics[f'{style}-{style_b}'] = evaluator.run_eval_mono_multistyle(epoch, epoch, 'test', mono_dl_other_test, dataloaders[style_b], style, style_b)
     elif not style_b:  # Caso "one to many" (style B è vuoto)
         styles_to_evaluate = [style for style in style_list if style != style_a]
         for style in styles_to_evaluate:
             mono_dl_other_test = dataloaders[style]
+            #evaluator.run_eval_mono(epoch, epoch, 'test', dataloaders[style_a], mono_dl_other_test)
             total_metrics[f'{style_a}-{style}'] = evaluator.run_eval_mono_multistyle(epoch, epoch, 'test', dataloaders[style_a], mono_dl_other_test, style_a, style)
 
     # Crea una tabella con le metriche medie
@@ -251,4 +255,4 @@ print('End checkpoint(s) test...')
 
 #Come raccordiamo le metriche ? Come facciamo la media tra stili?
 #Andrebbe modificato run eval mono in modo che ci faccia media di stili. 
-print('End checkpoint(s) test...')
+

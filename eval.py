@@ -497,7 +497,7 @@ class Evaluator():
                    'self-ROUGE-L A->B': avg_AB_rL_self, 'self-ROUGE-L B->A': avg_BA_rL_self,
                    'style accuracy': acc, 'acc-BLEU': avg_acc_bleu_self, 'g-acc-BLEU': avg_acc_bleu_self_geom,
                    'h-acc-BLEU': avg_acc_bleu_self_h}
-        """
+
         if phase == 'validation':
             base_path = f"{self.args.save_base_folder}epoch_{epoch}/"
             if self.args.eval_strategy == 'epochs':
@@ -542,7 +542,7 @@ class Evaluator():
 
         del df_AB, df_BA
         print(f'End {phase}...')
-        """
+
 
 
         # 3) Ritorna i dizionari
