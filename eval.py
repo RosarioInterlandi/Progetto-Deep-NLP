@@ -21,13 +21,12 @@ class Evaluator():
 
         self.bleu = evaluate.load('sacrebleu')
         self.rouge = evaluate.load('rouge')
-        if args.bertscore: self.bertscore = evaluate.load('bertscore')
     
 
     def __compute_metric__(self, predictions, references, metric_name, direction=None):
         # predictions = list | references = list of lists
         scores = []
-        if metric_name in ['bleu', 'rouge', 'bertscore']:
+        if metric_name in ['bleu', 'rouge']:
             for pred, ref in zip(predictions, references):
                 if metric_name == 'bleu':
                     res = self.bleu.compute(predictions=[pred], references=[ref])
@@ -36,13 +35,11 @@ class Evaluator():
                     tmp_rouge1, tmp_rouge2, tmp_rougeL = [], [], []
                     for r in ref:
                         res = self.rouge.compute(predictions=[pred], references=[r], use_aggregator=False)
-                        tmp_rouge1.append(res['rouge1'][0].fmeasure)
-                        tmp_rouge2.append(res['rouge2'][0].fmeasure)
-                        tmp_rougeL.append(res['rougeL'][0].fmeasure)
+                        tmp_rouge1.append(res['rouge1'][0])
+                        tmp_rouge2.append(res['rouge2'][0])
+                        tmp_rougeL.append(res['rougeL'][0])
                     scores.append([max(tmp_rouge1), max(tmp_rouge2), max(tmp_rougeL)])
-                elif metric_name == 'bertscore':
-                    res = self.bertscore.compute(predictions=[pred], references=[ref], lang=self.args.lang)
-                    scores.extend(res['f1'])
+
         else:
             raise Exception(f"Metric {metric_name} is not supported.")
         return scores
@@ -271,8 +268,7 @@ class Evaluator():
             scores_AB_r1_ref.extend(scores_rouge_ref[:, 0].tolist())
             scores_AB_r2_ref.extend(scores_rouge_ref[:, 1].tolist())
             scores_AB_rL_ref.extend(scores_rouge_ref[:, 2].tolist())
-            if self.args.bertscore: scores_AB_bscore.extend(self.__compute_metric__(transferred, references_b, 'bertscore'))
-            else: scores_AB_bscore.extend([0])
+            scores_AB_bscore.extend([0])
         avg_AB_bleu_self, avg_AB_bleu_ref = np.mean(scores_AB_bleu_self), np.mean(scores_AB_bleu_ref)
         avg_AB_bleu_geom = (avg_AB_bleu_self*avg_AB_bleu_ref)**0.5
         avg_AB_r1_self, avg_AB_r2_self, avg_AB_rL_self = np.mean(scores_AB_r1_self), np.mean(scores_AB_r2_self), np.mean(scores_AB_rL_self)
@@ -300,8 +296,7 @@ class Evaluator():
             scores_BA_r1_ref.extend(scores_rouge_ref[:, 0].tolist())
             scores_BA_r2_ref.extend(scores_rouge_ref[:, 1].tolist())
             scores_BA_rL_ref.extend(scores_rouge_ref[:, 2].tolist())
-            if self.args.bertscore: scores_BA_bscore.extend(self.__compute_metric__(transferred, references_a, 'bertscore'))
-            else: scores_BA_bscore.extend([0])
+            scores_BA_bscore.extend([0])
         avg_BA_bleu_self, avg_BA_bleu_ref = np.mean(scores_BA_bleu_self), np.mean(scores_BA_bleu_ref)
         avg_BA_bleu_geom = (avg_BA_bleu_self*avg_BA_bleu_ref)**0.5
         avg_BA_r1_self, avg_BA_r2_self, avg_BA_rL_self = np.mean(scores_BA_r1_self), np.mean(scores_BA_r2_self), np.mean(scores_BA_rL_self)
@@ -319,8 +314,8 @@ class Evaluator():
                    'self-ROUGE-L A->B':avg_AB_rL_self, 'self-ROUGE-L B->A':avg_BA_rL_self,
                    'ref-ROUGE-1 A->B':avg_AB_r1_ref, 'ref-ROUGE-1 B->A':avg_BA_r1_ref,
                    'ref-ROUGE-2 A->B':avg_AB_r2_ref, 'ref-ROUGE-2 B->A':avg_BA_r2_ref,
-                   'ref-ROUGE-L A->B':avg_AB_rL_ref, 'ref-ROUGE-L B->A':avg_BA_rL_ref,
-                   'BERTScore A->B':avg_AB_bscore, 'BERTScore B->A':avg_BA_bscore}
+                   'ref-ROUGE-L A->B':avg_AB_rL_ref, 'ref-ROUGE-L B->A':avg_BA_rL_ref
+                   }
 
         if phase == 'test':
             acc, prec, rec, f1 = self.__compute_classif_metrics__(pred_A, pred_B)

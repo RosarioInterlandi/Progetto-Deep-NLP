@@ -138,7 +138,7 @@ dataloaders_train = {}
 
 #   Iterare attraverso ogni stile nella lista
 for style in style_list:
-    dataset_path_train = os.path.join(args.path_train, f"{style}_train.csv")
+    dataset_path_train = os.path.join(args.path_train, f"{style}_train.txt")
     
     # Creazione del dataset per lo stile corrente
     datasets_train[style] = MonostyleDataset(
@@ -146,7 +146,7 @@ for style in style_list:
         style=style,
         dataset_path=dataset_path_train,
         separator='\n',
-        max_dataset_samples=args.max_samples_test
+        max_dataset_samples=args.max_samples_train
     )
 
 
@@ -172,7 +172,6 @@ if args.nonparal_same_size:
         print(f"Train dataset {style} ridotto a {min_length} campioni.")
 
 for style in style_list:
-    dataset_path_train = os.path.join(args.path_train, f"{style}_train.csv")
 
     # Creazione del dataloader per lo stile corrente
     dataloaders_train[style] = DataLoader(
@@ -196,7 +195,7 @@ dataloaders_eval = {}
 
 #   Iterare attraverso ogni stile nella lista
 for style in style_list:
-    dataset_path_eval = os.path.join(args.path_train, f"{style}_train.csv")
+    dataset_path_eval = os.path.join(args.path_eval, f"{style}_eval.txt")
     
     # Creazione del dataset per lo stile corrente
     datasets_eval[style] = MonostyleDataset(
@@ -204,7 +203,7 @@ for style in style_list:
         style=style,
         dataset_path=dataset_path_eval,
         separator='\n',
-        max_dataset_samples=args.max_samples_test
+        max_dataset_samples=args.max_samples_eval
     )
 
 
@@ -230,7 +229,6 @@ if args.nonparal_same_size:
         print(f"Eval dataset {style} ridotto a {min_length} campioni.")
 
 for style in style_list:
-    dataset_path_eval = os.path.join(args.path_train, f"{style}_train.csv")
 
     # Creazione del dataloader per lo stile corrente
     dataloaders_eval[style] = DataLoader(
@@ -401,7 +399,7 @@ for epoch in range(start_epoch, args.epochs):
     for i in range(max_batches):
         try:
             # Estrai un batch da dl_a
-            unsupervised_a = next(dataloader_iterators['style_a'])
+            unsupervised_a = next(dataloader_iterators[style_a])
         except StopIteration:
             # Se il dataloader principale termina, interrompi il ciclo
             break
@@ -429,8 +427,8 @@ for epoch in range(start_epoch, args.epochs):
         cycleGAN.training_cycle(
             sentences_a=unsupervised_a,
             sentences_b=unsupervised_b,
-            sentences_a_style: style_a,
-            sentences_b_style: chosen_style,
+            sentences_a_style= style_a,
+            sentences_b_style= chosen_style,
             lambdas=lambdas,
             comet_experiment=experiment,
             loss_logging=loss_logging,
@@ -451,15 +449,15 @@ for epoch in range(start_epoch, args.epochs):
             epoch < args.additional_eval and current_training_step % (max_batches // 2 + 1) == 0 ):  #volta alla fine di ogni epoca, se è steps possiamo indicare noi ogni quanti batch
                                                                                                      #fare la validazione, la seconda condizione è se fare una validazione a metà delle prime additional_eval epoche
             
-            # Esegui `run_eval_mono` intermedia secondo eval_strategy per tutte le coppie <mono_dl_a_test, ..>
+            # Esegui `run_eval_mono` intermedia secondo eval_strategy per tutte le coppie <mono_dl_a_eval, ..>
             styles_to_evaluate = [style for style in style_list if style != style_a]
             total_metrics_eval = {}
             for style in styles_to_evaluate:
-                mono_dl_other_test = dataloaders_eval[style]  # Recupera il dataloader dello stile corrente
-                evaluator.run_eval_mono(epoch, current_training_step, 'validation', dataloaders_eval[style_a], mono_dl_other_test)
+                mono_dl_other_eval = dataloaders_eval[style]  # Recupera il dataloader dello stile corrente
+                evaluator.run_eval_mono(epoch, current_training_step, 'validation', dataloaders_eval[style_a], mono_dl_other_eval)
                 total_metrics_eval[f'{style_a}-{style}'] = evaluator.run_eval_mono_multistyle(epoch, epoch, 'validation',
                                                                                          dataloaders_eval[style_a],
-                                                                                         mono_dl_other_test, style_a,
+                                                                                         mono_dl_other_eval, style_a,
                                                                                          style)
             metrics_df = pd.DataFrame(total_metrics_eval).T
             metrics_df['Mean'] = metrics_df.mean(axis=1)
@@ -485,12 +483,12 @@ for epoch in range(start_epoch, args.epochs):
                 os.remove(args.control_file)
                 break
 
-    # Final `run_eval_mono` per tutte le coppie <mono_dl_a_test, ..>
+    # Final `run_eval_mono` per tutte le coppie <mono_dl_a_eval, ..>
     styles_to_evaluate = [style for style in style_list if style != style_a]
     total_metrics_eval = {}
     for style in styles_to_evaluate:
-                mono_dl_other_test = dataloaders_eval[style]  # Recupera il dataloader dello stile corrente
-                total_metrics_eval[f'{style_a}-{style}'] = evaluator.run_eval_mono_multistyle(epoch, epoch, 'validation',dataloaders_eval[style_a], mono_dl_other_test, style_a,style)
+                mono_dl_other_eval = dataloaders_eval[style]  # Recupera il dataloader dello stile corrente
+                total_metrics_eval[f'{style_a}-{style}'] = evaluator.run_eval_mono_multistyle(epoch, epoch, 'validation',dataloaders_eval[style_a], mono_dl_other_eval, style_a,style)
 
     metrics_df = pd.DataFrame(total_metrics_eval).T
     metrics_df['Mean'] = metrics_df.mean(axis=1)
