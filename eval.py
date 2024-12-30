@@ -483,13 +483,13 @@ class Evaluator():
         avg_acc_bleu_self = (avg_2dir_bleu_self + acc_scaled) / 2
         avg_acc_bleu_self_geom = (avg_2dir_bleu_self * acc_scaled) ** 0.5
         avg_acc_bleu_self_h = 2 * avg_2dir_bleu_self * acc_scaled / (avg_2dir_bleu_self + acc_scaled + 1e-6)
-
+        #MODIFIED
         metrics = {'epoch': epoch, 'step': current_training_step,
-                   'self-BLEU A->B': avg_AB_bleu_self, 'self-BLEU B->A': avg_BA_bleu_self,
+                   f'self-BLEU {style_A}->{style_B}': avg_AB_bleu_self, f'self-BLEU {style_B}->{style_A}': avg_BA_bleu_self,
                    'self-BLEU avg': avg_2dir_bleu_self,
-                   'self-ROUGE-1 A->B': avg_AB_r1_self, 'self-ROUGE-1 B->A': avg_BA_r1_self,
-                   'self-ROUGE-2 A->B': avg_AB_r2_self, 'self-ROUGE-2 B->A': avg_BA_r2_self,
-                   'self-ROUGE-L A->B': avg_AB_rL_self, 'self-ROUGE-L B->A': avg_BA_rL_self,
+                   f'self-ROUGE-1 {style_A}->{style_B}': avg_AB_r1_self, f'self-ROUGE-1 {style_B}->{style_A}': avg_BA_r1_self,
+                   f'self-ROUGE-2 {style_A}->{style_B}': avg_AB_r2_self, f'self-ROUGE-2 {style_B}->{style_A}': avg_BA_r2_self,
+                   f'self-ROUGE-L {style_A}->{style_B}': avg_AB_rL_self, f'self-ROUGE-L {style_B}->{style_A}': avg_BA_rL_self,
                    'style accuracy': acc, 'acc-BLEU': avg_acc_bleu_self, 'g-acc-BLEU': avg_acc_bleu_self_geom,
                    'h-acc-BLEU': avg_acc_bleu_self_h}
 
@@ -512,28 +512,26 @@ class Evaluator():
             suffix = f'epoch{epoch}_test'
         os.makedirs(os.path.dirname(base_path), exist_ok=True)
         pickle.dump(metrics, open(f"{base_path}metrics_{suffix}.pickle", 'wb'))
-
+        # MODIFIED : CAMBIATO LA STRINGA AB CON IL VALORE STYLE A E B, ANCHE DENTRO IL LOG TABLE
         df_AB = pd.DataFrame()
-        df_AB['A (source)'] = real_A
-        df_AB['B (generated)'] = pred_B
-        df_AB.to_csv(f"{base_path}AB_{suffix}.csv", sep=',', header=True)
+        df_AB[f'{style_A} (source)'] = real_A
+        df_AB[f'{style_B}(generated)'] = pred_B
+        df_AB.to_csv(f"{base_path}{style_A}{style_B}_{suffix}.csv", sep=',', header=True)
         df_BA = pd.DataFrame()
-        df_BA['B (source)'] = real_B
-        df_BA['A (generated)'] = pred_A
-        df_BA.to_csv(f"{base_path}BA_{suffix}.csv", sep=',', header=True)
+        df_BA[f'{style_B} (source)'] = real_B
+        df_BA[f'{style_A} (generated)'] = pred_A
+        df_BA.to_csv(f"{base_path}{style_B}{style_A}_{suffix}.csv", sep=',', header=True)
 
         if self.args.comet_logging:
             with context():
                 # Logga le tabelle generate
-                self.experiment.log_table(f'./AB_{suffix}.csv', tabular_data=df_AB, headers=True)
-                self.experiment.log_table(f'./BA_{suffix}.csv', tabular_data=df_BA, headers=True)
+                self.experiment.log_table(f'./{style_A}{style_B}_{suffix}.csv', tabular_data=df_AB, headers=True)
+                self.experiment.log_table(f'./{style_B}{style_A}_{suffix}.csv', tabular_data=df_BA, headers=True)
 
                 # Logga ogni metrica con i dettagli degli stili A e B
                 for m, v in metrics.items():
-                    if m not in ['epoch', 'step']:
-                        # Includi gli stili A e B nel nome della metrica
-                        metric_name_with_styles = f"{m} ({style_A} -> {style_B})"
-                        self.experiment.log_metric(metric_name_with_styles, v, step=current_training_step, epoch=epoch)
+                    if m not in ['epoch', 'step']:  # MODIFIED : RIGA RIMOSSA E PARAMETRO CAMBIATO
+                        self.experiment.log_metric(m, v, step=current_training_step, epoch=epoch)
 
         del df_AB, df_BA
         print(f'End {phase}...')
